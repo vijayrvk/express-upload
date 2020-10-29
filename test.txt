@@ -1,0 +1,158 @@
+<html>
+    <head>
+      <title>OCR Test</title>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+      <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE10"/>
+    </head>
+    <body>
+      <div style="margin:50px;">
+        <nav class="navbar navbar-inverse navbar-static-top">
+      <div class="container">
+        <a class="navbar-brand" href="/">OCR Test Page</a>
+        <ul class="nav navbar-nav">
+          <li class="active">
+            <a href="/">Home</a>
+          </li>
+          <li>
+            <a href="#">About</a>
+          </li>
+          <li>
+            <a href="#">Sitemap</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+        <div class="jumbotron">
+          <div class="container">
+            <div class="col-md-6">
+              <h3>OCR Test</h3>
+              <form method="POST" enctype="multipart/form-data" id="fileUploadForm">
+                <div class="form-group">
+                  <label for="proofSelect">Select Proof</label>
+                  <select class="form-control" id="proofSelect">
+                    <option value="aadhaar">Aadhaar</option>
+                    <option value="pan">PAN</option>
+                    <option value="passport">Passport</option>
+                    <option value="any">Others</option>
+                  </select>
+                  <small id="proofHelp" class="form-text text-muted">Select any one proof option</small> 
+                </div>
+                <div class="form-group">
+                  <input type="file" name="files" id="proof_uploaded"/>
+                  <small id="proofHelp" class="form-text text-muted">Upload the image of selected proof</small> 
+                </div>
+                <div class="form-group">
+                  <input class="btn btn-info pull-right" type="submit" value="Submit" id="btnSubmit"/>
+                </div>  
+              </form>
+            </div>
+            <div class="col-md-1"></div>
+            <div class="col-md-5">
+              <h4>Response:</h4>
+                <div class="form-group">
+                  <label class="label label-primary">Response Time:</label>
+                  <pre id="response_time" class="form-group"></pre>
+                </div>
+                <div class="form-group">
+                  <label class="label label-primary">Data:</label>  
+                  <pre id="response_data"></pre>
+                </div>
+            </div>
+          </div>  
+        </div>
+      </div>
+      <script type="text/javascript">
+          $(document).ready(function () {
+            $('#proof_uploaded').change(function () {
+            if (this.files.length > 0) {
+
+                $.each(this.files, function (i, v) {
+                    var reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        var img = new Image();
+                        img.src = e.target.result;
+
+                        img.onload = function () {
+
+                            // CREATE A CANVAS ELEMENT AND ASSIGN THE IMAGES TO IT.
+                            var canvas = document.createElement("canvas");
+
+                            var value = 50; //configurable
+
+                            // RESIZE THE IMAGES ONE BY ONE.
+                            img.width = (img.width * value) / 100
+                            img.height = (img.height * value) / 100
+
+                            var ctx = canvas.getContext("2d");
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0, img.width, img.height);
+
+                           // $('#preview_img').append(img);      // SHOW THE IMAGES OF THE BROWSER.
+
+                            // AUTO DOWNLOAD THE IMAGES, ONCES RESIZED.
+                            var a = document.createElement('a');
+                            a.href = canvas.toDataURL("image/jpeg");
+                            a.download = 'sample.jpg';
+                            document.body.appendChild(a);
+                            a.click();
+                        }
+                    };
+                    reader.readAsDataURL(this);
+                });
+            }
+        });
+
+
+            $("#btnSubmit").click(function (event) {
+                $("#response_time").text('Loading...');
+                $("#response_data").text('Loading...');
+                var ext = $('#proof_uploaded').val().split('.').pop().toLowerCase();
+                if($.inArray(ext, ['png','jpg','jpeg','tiff']) == -1) {
+                    event.preventDefault();
+                    alert('Invalid ! Only jpg,png and tiff are allowed');
+                }else{
+                var option = $("#proofSelect option:selected").val();  
+                //stop submit the form, we will post it manually.
+                event.preventDefault();
+
+                // Get form
+                var form = $('#fileUploadForm')[0];
+                var data = new FormData(form);
+                data.append("option", option);
+                $("#btnSubmit").prop("disabled", true);
+
+                $.ajax({
+                    type: "POST",
+                    enctype: 'multipart/form-data',
+                    url: "/upload",
+                    data: data,
+                    processData: false,
+                    contentType: false,
+                    cache: false,
+                    timeout: 600000,
+                    success: function (data) {
+                        $("#response_time").text(data.responseTime + ' Seconds');
+                        $("#response_data").text(data.body);
+                        console.log("SUCCESS : ", data);
+                        $("#btnSubmit").prop("disabled", false);
+                    },
+                    error: function (e) {
+                        $("#result").text(e.responseText);
+                        console.log("ERROR : ", e);
+                        $("#btnSubmit").prop("disabled", false);
+                    }
+                });
+               } 
+            });
+        });
+      </script>
+      
+        
+    </body>
+</html>
